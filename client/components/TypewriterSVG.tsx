@@ -3,9 +3,10 @@
 interface TypewriterSVGProps {
     pressedKey: string | null
     leverSwing: boolean
+    userName?: string
 }
 
-export default function TypewriterSVG({ pressedKey, leverSwing }: TypewriterSVGProps) {
+export default function TypewriterSVG({ pressedKey, leverSwing, userName }: TypewriterSVGProps) {
     // Key rows matching the Royal in the photo
     const ROW_NUMS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=']
     const ROW_QWERTY = ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
@@ -74,6 +75,7 @@ export default function TypewriterSVG({ pressedKey, leverSwing }: TypewriterSVGP
     return (
         <svg
             viewBox="0 55 860 470"
+
             xmlns="http://www.w3.org/2000/svg"
             className="w-full h-full"
             style={{
@@ -260,6 +262,22 @@ export default function TypewriterSVG({ pressedKey, leverSwing }: TypewriterSVGP
             <rect x="126" y="72" width="572" height="58" rx="15" fill="url(#platen)" />
             {/* Platen highlight */}
             <rect x="130" y="75" width="564" height="22" rx="10" fill="url(#platenHL)" />
+            <text
+                x="412"
+                y="110"
+                textAnchor="middle"
+                fill="#1e1b16"
+                fontSize="13"
+                fontWeight="bold"
+                fontFamily="'Special Elite', cursive"
+                letterSpacing="0.12em"
+                style={{
+                    opacity: 2,
+                    pointerEvents: "none"
+                }}
+            >
+                Click Here (Every story begins with a keystroke)
+            </text>
             {/* Lower shadow */}
             <rect x="126" y="114" width="572" height="16" rx="0" fill="rgba(0,0,0,0.16)" />
             {/* Groove lines */}
@@ -412,7 +430,7 @@ export default function TypewriterSVG({ pressedKey, leverSwing }: TypewriterSVGP
             <text x="412" y="236" textAnchor="middle" dominantBaseline="middle"
                 fill="white" fontSize="15"
                 fontFamily="'Special Elite', cursive"
-                letterSpacing="3" fontWeight="bold">NIRAKAR</text>
+                letterSpacing="3" fontWeight="bold">{userName ? userName.toUpperCase() : 'NIRAKAR'}</text>
             {/* Decorative dots above text */}
             {Array.from({ length: 7 }, (_, i) => (
                 <circle key={i} cx={367 + i * 14} cy="222" r="1.5" fill="rgba(255,255,255,0.45)" />
@@ -447,6 +465,24 @@ export default function TypewriterSVG({ pressedKey, leverSwing }: TypewriterSVGP
             {/* Inner side shadows */}
             <rect x="122" y="290" width="18" height="166" rx="5" fill="rgba(0,0,0,0.22)" />
             <rect x="684" y="290" width="18" height="166" rx="5" fill="rgba(0,0,0,0.22)" />
+
+            {/* Fancy "Click here to write" prompt */}
+            <g style={{ opacity: 0.25 }}>
+                <text
+                    x="412" y="303"
+                    textAnchor="middle"
+                    fill="url(#roseBody)"
+                    fontSize="9.5"
+                    fontFamily="'Special Elite', cursive"
+                    style={{
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase',
+                        pointerEvents: 'none'
+                    }}
+                >
+                    — click here to write —
+                </text>
+            </g>
 
             {/* ══════════════════════════════════════════
           KEYS — round cream cylindrical Royal-style
