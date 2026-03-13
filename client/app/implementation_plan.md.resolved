@@ -1,0 +1,135 @@
+# QuiteInk Backend (Express + MongoDB) + Frontend Integration
+
+Build a complete Express.js backend with MongoDB for the QuiteInk journal app, replacing the current localStorage-based persistence with API-driven CRUD operations.
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Database choice:** Your prompt mentions both MongoDB and PostgreSQL. Based on the title and closing of your request, I'm using **MongoDB with Mongoose** (not PostgreSQL/pg). Let me know if you want PostgreSQL instead.
+
+> [!IMPORTANT]
+> **Title + multi-page saving:** When saving, a modal will prompt for a **title**. All completed pages + the current page will be saved together as a single journal entry with a `pages` array. Each page stores its text and page number.
+
+> [!NOTE]
+> You'll need to provide the MongoDB connection string in [server/.env](file:///d:/quiteInk/server/.env) after the backend is created. I'll leave a placeholder: `MONGODB_URI=mongodb://localhost:27017/quietink`.
+
+---
+
+## Proposed Changes
+
+### Backend — `server/` (all new files)
+
+#### [NEW] [package.json](file:///d:/quiteInk/server/package.json)
+Dependencies: `express`, `mongoose`, `cors`, `dotenv`. Dev: `nodemon`. Start script + dev script.
+
+#### [NEW] [.env](file:///d:/quiteInk/server/.env)
+Template with `PORT=5000`, `MONGODB_URI=mongodb://localhost:27017/quietink`, `CORS_ORIGIN=http://localhost:3000`.
+
+#### [NEW] [src/db/db.js](file:///d:/quiteInk/server/src/db/db.js)
+Mongoose connection using `MONGODB_URI` from env. Logs connection success/failure.
+
+#### [NEW] [src/models/journalModel.js](file:///d:/quiteInk/server/src/models/journalModel.js)
+Mongoose schema for [Journal](file:///d:/quiteInk/server/src/controllers/journalController.js#65-127):
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | String (required) | User-provided title |
+| `pages` | Array of `{ text, pageNumber }` | All pages of the entry |
+| `aiReply` | String (optional) | AI-generated response |
+| `createdAt` | Date | Auto-managed by Mongoose timestamps |
+| `updatedAt` | Date | Auto-managed by Mongoose timestamps |
+
+#### [NEW] [src/controllers/journalController.js](file:///d:/quiteInk/server/src/controllers/journalController.js)
+Async/await CRUD handlers:
+- [createJournal](file:///d:/quiteInk/server/src/controllers/journalController.js#3-52) — validates title + pages, creates new document
+- [getAllJournals](file:///d:/quiteInk/server/src/controllers/journalController.js#53-64) — returns all entries sorted by newest first
+- [updateJournal](file:///d:/quiteInk/server/src/controllers/journalController.js#65-127) — finds by ID, updates title/pages/aiReply
+- [deleteJournal](file:///d:/quiteInk/server/src/controllers/journalController.js#128-149) — finds by ID and deletes
+
+#### [NEW] [src/routes/journalRoutes.js](file:///d:/quiteInk/server/src/routes/journalRoutes.js)
+```
+POST   /api/journals     → createJournal
+GET    /api/journals     → getAllJournals
+PUT    /api/journals/:id → updateJournal
+DELETE /api/journals/:id → deleteJournal
+```
+
+#### [NEW] [src/app.js](file:///d:/quiteInk/server/src/app.js)
+Express app: CORS middleware (configured for frontend origin), JSON body parser, routes, error handler.
+
+#### [NEW] [server.js](file:///d:/quiteInk/server/server.js)
+Entry point: loads dotenv, connects to MongoDB, then starts Express server on configured port.
+
+---
+
+### Frontend Modifications
+
+#### [MODIFY] [EntriesPanel.tsx](file:///d:/quiteInk/my-app/components/EntriesPanel.tsx)
+- Update [SavedEntry](file:///d:/quiteInk/my-app/components/EntriesPanel.tsx#8-16) interface: add `title` (string), `pages` (array), rename `_id` for MongoDB
+- Display entry title as the primary heading in each entry card
+- Show page count
+- Update footer text from "entries saved to your browser" → "entries saved to server"
+
+#### [MODIFY] [page.tsx](file:///d:/quiteInk/my-app/app/page.tsx)
+- Add title prompt modal (appears when user clicks Save)
+- Combine all `completedPages` + current page text into `pages` array
+- Replace localStorage calls with `fetch()` to `/api/journals`
+- `saveEntry` → `POST /api/journals` with title + pages + aiReply
+- `loadEntries` → `GET /api/journals` on mount
+- `deleteEntry` → `DELETE /api/journals/:id`
+- `loadEntry` → restore pages from entry data
+
+#### [MODIFY] [next.config.ts](file:///d:/quiteInk/my-app/next.config.ts)
+Add [rewrites()](file:///d:/quiteInk/my-app/next.config.ts#4-12) to proxy `/api/*` requests to `http://localhost:5000/api/*` during development.
+
+---
+
+### Component Refactoring — `components/home/`
+
+#### [NEW] [audioUtils.ts](file:///d:/quiteInk/my-app/utils/audioUtils.ts)
+Extract [createTypewriterSound](file:///d:/quiteInk/my-app/app/page.tsx#9-76), `MONTHS`, `FALLBACKS`, and [getDateStamp](file:///d:/quiteInk/my-app/app/page.tsx#89-93).
+
+#### [NEW] [TopBar.tsx](file:///d:/quiteInk/my-app/components/home/TopBar.tsx)
+Extract the entries count and top save/entries buttons.
+
+#### [NEW] [Header.tsx](file:///d:/quiteInk/my-app/components/home/Header.tsx)
+Extract the QuietInk title and subtitle.
+
+#### [NEW] [ActionButtons.tsx](file:///d:/quiteInk/my-app/components/home/ActionButtons.tsx)
+Extract the "Save Entry" / "Begin new entry" buttons.
+
+#### [NEW] [TitleModal.tsx](file:///d:/quiteInk/my-app/components/home/TitleModal.tsx)
+Extract the save entry title prompt modal.
+
+#### [NEW] [Candle.tsx](file:///d:/quiteInk/my-app/components/home/Candle.tsx)
+Extract the candle decoration.
+
+#### [NEW] [Dustbin.tsx](file:///d:/quiteInk/my-app/components/home/Dustbin.tsx)
+Extract the trash bin component.
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. Start MongoDB locally (or connect to Atlas)
+2. Run `cd d:\quiteInk\server && npm install && npm run dev` — backend should log "Connected to MongoDB" and "Server running on port 5000"
+3. Run `cd d:\quiteInk\my-app && npm run dev` — frontend on port 3000
+4. **Test Create:** Type text in typewriter, click Save → title modal appears → enter title → entry saves, appears in panel
+5. **Test Read:** Refresh page → entries load from server (not localStorage)
+6. **Test Delete:** Click ✕ on an entry in the panel → entry is removed
+7. **Test Load:** Click "reload" on an entry → text and pages restore in the editor
+
+### Automated API Testing (curl)
+```bash
+# Create
+curl -X POST http://localhost:5000/api/journals -H "Content-Type: application/json" -d "{\"title\":\"Test\",\"pages\":[{\"text\":\"Hello world\",\"pageNumber\":1}]}"
+
+# Read all
+curl http://localhost:5000/api/journals
+
+# Update (replace <id> with actual _id)
+curl -X PUT http://localhost:5000/api/journals/<id> -H "Content-Type: application/json" -d "{\"title\":\"Updated\"}"
+
+# Delete
+curl -X DELETE http://localhost:5000/api/journals/<id>
+```
