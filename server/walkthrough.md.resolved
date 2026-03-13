@@ -1,0 +1,92 @@
+# QuiteInk Backend + Frontend Integration Walkthrough
+
+I have successfully built a complete **Express.js + MongoDB** backend for QuiteInk and integrated it with your existing Next.js frontend. The application now supports full CRUD operations with server-side persistence, replacing the previous localStorage implementation.
+
+## Key Accomplishments
+
+### 1. Robust Backend Architecture
+Built a modular backend in the `server/` directory with:
+- **Mongoose Models**: A [Journal](file:///d:/quiteInk/server/src/controllers/journalController.js#70-91) schema with support for **titles**, **multiple pages**, and **AI replies**.
+- **RESTful Controllers**: Async/await handlers for creating, reading, updating, and deleting journal entries.
+- **Express Routes**: Clean API endpoints under `/api/journals`.
+- **Environment Configuration**: Secure setup with `dotenv` and CORS.
+
+### 2. Frontend API Integration
+Transformed the frontend to communicate with the server:
+- **API Proxying**: Updated [next.config.ts](file:///d:/quiteInk/my-app/next.config.ts) to automatically route `/api` calls to the backend during development.
+- **Fetch Logic**: Replaced all `localStorage` logic in [page.tsx](file:///d:/quiteInk/my-app/app/page.tsx) with robust `fetch` requests.
+- **Enhanced Data Model**: Updated the [SavedEntry](file:///d:/quiteInk/my-app/components/EntriesPanel.tsx#8-16) type to support titles and collections of pages.
+
+### 3. New Title Modal feature
+When you click **Save Entry**, a new premium modal appears asking for a title. This allows you to name your musings before they are safely stored on the server.
+
+---
+
+## Technical Overview
+
+### Database Schema
+The new MongoDB schema is designed for multi-page writing:
+```javascript
+const journalSchema = new mongoose.Schema({
+  title: String,
+  pages: [{ text: String, pageNumber: Number }],
+  aiReply: String,
+  createdAt: Date,
+  updatedAt: Date
+});
+```
+
+### API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/journals` | Save a new entry with title and pages |
+| `GET` | `/api/journals` | Fetch all saved entries |
+| `DELETE` | `/api/journals/:id` | Remove an entry from the database |
+| `PUT` | `/api/journals/:id` | Update an existing entry |
+
+---
+
+## How to Run & Verify
+
+### Step 1: Start the Backend
+1. Open a terminal in `d:\quiteInk\server`.
+2. Ensure you have MongoDB running.
+3. Update `MONGODB_URI` in [.env](file:///d:/quiteInk/server/.env) if needed.
+4. Run `npm run dev`.
+
+### Step 2: Start the Frontend
+1. Open a terminal in `d:\quiteInk\my-app`.
+2. Run `npm run dev`.
+
+### Step 3: Verify the Flow
+1. **Write**: Start typing on the typewriter. Create multi-page entries by typing enough to fill a page.
+2. **Save**: Click the "Save" button. Enter a title in the floating modal.
+3. **Review**: Open the "Saved" panel on the right. Your new entry will appear with its title and total page count.
+4. **Reload**: Click "reload" on any saved entry to restore your pages to the typewriter.
+5. **Delete**: Click the ✕ on an entry card to remove it from the server.
+
+---
+
+## Code Highlights
+
+### Saving Entry (Internal Logic)
+The frontend now aggregates all pages into a single payload:
+```typescript
+const pages = [...completedPages, { text: text.trim(), pageNumber: currentPage }];
+const payload = {
+  title: saveTitle.trim(),
+  pages,
+  aiReply: currentAiReply
+};
+await fetch('/api/journals', { method: 'POST', body: JSON.stringify(payload) });
+```
+
+### Backend Controller
+Clean, error-guarded controller logic:
+```javascript
+const createJournal = async (req, res) => {
+  const { title, pages, aiReply } = req.body;
+  const journal = await Journal.create({ title, pages, aiReply });
+  res.status(201).json(journal);
+};
+```
